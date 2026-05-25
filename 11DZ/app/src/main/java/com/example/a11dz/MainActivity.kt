@@ -3,28 +3,47 @@ package com.example.a11dz
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.a11dz.ui.theme._11DZTheme
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+
+data class Car(
+    val brand: String,
+    val model: String,
+    val year: Int,
+    val description: String,
+    val cost: Int,
+    val image: Int
+)
+
+val cars = listOf(
+    Car("Toyota", "Camry", 2018, "Хорошая машина для города", 1500000, R.drawable.car_1),
+    Car("BMW", "X5", 2020, "Большой внедорожник", 4200000, R.drawable.car_2),
+    Car("Lada", "Vesta", 2021, "Недорогой автомобиль", 950000, R.drawable.car_3),
+    Car("Kia", "Rio", 2019, "Экономичная машина", 1100000, R.drawable.car_1)
+)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,7 +54,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    CoroutineProgressApp()
+                    CarShopScreen()
                 }
             }
         }
@@ -43,77 +62,75 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun CoroutineProgressApp() {
-    var status by remember { mutableStateOf("Waiting") }
-    var progress by remember { mutableStateOf(0f) }
-    var isRunning by remember { mutableStateOf(false) }
-    var job by remember { mutableStateOf<Job?>(null) }
-    val scope = rememberCoroutineScope()
+fun CarShopScreen() {
+    var searchText by remember { mutableStateOf("") }
+
+    val filteredCars = cars.filter { car ->
+        val text = searchText.lowercase()
+        car.brand.lowercase().contains(text) ||
+            car.model.lowercase().contains(text) ||
+            car.year.toString().contains(text) ||
+            car.description.lowercase().contains(text) ||
+            car.cost.toString().contains(text)
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .padding(16.dp)
     ) {
         Text(
-            text = "Status: $status",
-            style = MaterialTheme.typography.titleLarge
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        LinearProgressIndicator(
-            progress = { progress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
+            text = "Продажа авто",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Text(text = "${(progress * 100).toInt()}%")
+        OutlinedTextField(
+            value = searchText,
+            onValueChange = { searchText = it },
+            label = { Text("Поиск") },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Button(
-                enabled = !isRunning,
-                onClick = {
-                    status = "Running"
-                    progress = 0f
-                    isRunning = true
-
-                    job = scope.launch {
-                        for (i in 1..100) {
-                            delay(300)
-                            progress = i / 100f
-                        }
-
-                        status = "Done"
-                        isRunning = false
-                        job = null
-                    }
-                }
-            ) {
-                Text(text = "Start")
+        LazyColumn {
+            items(filteredCars) { car ->
+                CarItem(car)
             }
+        }
+    }
+}
 
-            OutlinedButton(
-                enabled = isRunning,
-                onClick = {
-                    job?.cancel()
-                    job = null
-                    progress = 0f
-                    status = "Waiting"
-                    isRunning = false
-                }
-            ) {
-                Text(text = "Cancel")
-            }
+@Composable
+fun CarItem(car: Car) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Image(
+                painter = painterResource(id = car.image),
+                contentDescription = car.brand,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "${car.brand} ${car.model}",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(text = "Год: ${car.year}")
+            Text(text = "Цена: ${car.cost} руб.")
+            Text(text = car.description)
         }
     }
 }
